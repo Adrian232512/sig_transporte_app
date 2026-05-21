@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'recharge_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -8,23 +9,30 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // Variable de estado que cambiará dinámicamente
+  // Variable de estado que cambiará dinamicamente
   double _saldo = 0.00;
 
-  void _ejecutarRecarga() {
-    // setState le avisa a Flutter que debe redibujar la pantalla con el nuevo dato
-    setState(() {
-      _saldo += 10.00;
-    });
-    
-    // Muestra una barra de éxito flotante en la parte inferior
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('¡Recarga de 10.00 Bs. realizada con éxito!'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
+  void _ejecutarRecarga() async {
+    // Navegamos a la nueva pantalla de recargas y ESPERAMOS (await) a que devuelva un resultado
+    final montoRecargado = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const RechargeScreen()),
     );
+
+    // Verificamos si el usuario confirmo y devolvió un numero
+    if (montoRecargado != null && montoRecargado is double) {
+      setState(() {
+        _saldo += montoRecargado; 
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('¡Recarga de ${montoRecargado.toStringAsFixed(2)} Bs. realizada con éxito!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override

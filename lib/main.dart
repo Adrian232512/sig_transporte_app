@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/welcome_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() {
   runApp(const TransporteApp());
@@ -27,7 +27,7 @@ class TransporteApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const WelcomeScreen(),
+      home: const SplashScreen(),
     );
   }
 }

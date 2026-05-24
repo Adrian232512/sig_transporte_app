@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'recharge_screen.dart';
+import 'link_card_screen.dart';
+import 'history_screen.dart';
+import 'monitoring_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -9,107 +12,87 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // Variable de estado que cambiará dinamicamente
   double _saldo = 0.00;
-
-  void _ejecutarRecarga() async {
-    // Navegamos a la nueva pantalla de recargas y ESPERAMOS (await) a que devuelva un resultado
-    final montoRecargado = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const RechargeScreen()),
-    );
-
-    // Verificamos si el usuario confirmo y devolvió un numero
-    if (montoRecargado != null && montoRecargado is double) {
-      setState(() {
-        _saldo += montoRecargado; 
-      });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('¡Recarga de ${montoRecargado.toStringAsFixed(2)} Bs. realizada con éxito!'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
+  bool _tarjetaVinculada = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mi Billetera', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('SIGTRANSPORTE', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: const Color(0xFF0D47A1),
         foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+          ),
+        ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            const SizedBox(height: 20),
-            // Tarjeta de Saldo con degradado y sombras modernas
+            const SizedBox(height: 10),
+            // Tarjeta de Saldo Principal
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.blue.shade800, Colors.blue.shade500],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.blue.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  )
-                ],
+                gradient: LinearGradient(colors: [Colors.blue.shade900, Colors.blue.shade600]),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 10)],
               ),
               child: Column(
                 children: [
-                  const Text(
-                    'SALDO DISPONIBLE:',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white70),
-                  ),
+                  const Text('SALDO DISPONIBLE', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
-                  // Muestra el valor de la variable formateado a 2 decimales
-                  Text(
-                    '${_saldo.toStringAsFixed(2)} Bs.',
-                    style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white),
-                  ),
+                  Text('${_saldo.toStringAsFixed(2)} Bs.', style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: Colors.white)),
                 ],
               ),
             ),
-            const SizedBox(height: 40),
-            // Panel de botones de acción interactivos
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            const SizedBox(height: 30),
+            // Cuadrícula de Acciones (2x2)
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.1,
               children: [
-                _buildActionCard(
-                  icon: Icons.phone_android,
-                  label: 'Recarga tu\nTarjeta',
-                  onTap: _ejecutarRecarga, // Vinculado a la función de sumar dinero
+                _buildMenuCard(
+                  'Recarga Virtual', 
+                  Icons.account_balance_wallet, 
+                  Colors.orange, 
+                  () async {
+                    final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => const RechargeScreen()));
+                    if (res != null) setState(() => _saldo += res);
+                  }
                 ),
-                _buildActionCard(
-                  icon: Icons.currency_exchange,
-                  label: 'Realizar\nTransferencias',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Módulo de transferencias en desarrollo')),
-                    );
-                  },
+                _buildMenuCard(
+                  _tarjetaVinculada ? 'Tarjeta Vinculada' : 'Vincular Tarjeta', 
+                  _tarjetaVinculada ? Icons.check_circle : Icons.nfc, 
+                  _tarjetaVinculada ? Colors.green : Colors.blue, 
+                  () async {
+                    if (_tarjetaVinculada) return;
+                    final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => const LinkCardScreen()));
+                    if (res == true) setState(() => _tarjetaVinculada = true);
+                  }
                 ),
-                _buildActionCard(
-                  icon: Icons.history,
-                  label: 'Historial\n',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Historial de viajes vacío')),
-                    );
-                  },
+                _buildMenuCard(
+                  'Monitoreo Rutas', 
+                  Icons.map, 
+                  Colors.purple, 
+                  () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MonitoringScreen()))
+                ),
+                _buildMenuCard(
+                  'Historial Viajes', 
+                  Icons.history, 
+                  Colors.blueGrey, 
+                  () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()))
                 ),
               ],
             ),
@@ -119,35 +102,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Estructura visual para las tarjetas de acciones del menú
-  Widget _buildActionCard({required IconData icon, required String label, required VoidCallback onTap}) {
-    return GestureDetector(
+  Widget _buildMenuCard(String title, IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        width: 105,
-        height: 125,
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border.all(color: const Color(0xFF0D47A1).withOpacity(0.3), width: 1.5),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            )
-          ],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 38, color: const Color(0xFF0D47A1)),
+            Icon(icon, size: 45, color: color),
             const SizedBox(height: 12),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87),
-            ),
+            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'recharge_screen.dart';
 import 'link_card_screen.dart';
 import 'history_screen.dart';
@@ -15,6 +16,120 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double _saldo = 0.00;
   bool _tarjetaVinculada = false;
 
+  // FUNCIÓN PARA GENERAR Y MOSTRAR EL QR DEL PASAJE VIRTUAL (CON SIMULADOR)
+  void _generarPasajeQR() {
+    String datosDelBoleto = "SIGTRANSPORTE_BOLIVIA|USER_ID:123|TICKET_TYPE:NORMAL|TIMESTAMP:${DateTime.now().toIso8601String()}";
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 20),
+              
+              const Text(
+                'Tu Pasaje Virtual',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1)),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Acerca este código QR al validador del bus para pagar tu pasaje.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black54),
+              ),
+              const SizedBox(height: 30),
+              
+              // WIDGET DEL QR
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.grey.shade200, width: 2),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                ),
+                child: QrImageView(
+                  data: datosDelBoleto,
+                  version: QrVersions.auto,
+                  size: 220.0,
+                  gapless: false,
+                  eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF0D47A1)),
+                  dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Colors.black87),
+                ),
+              ),
+              
+              const SizedBox(height: 30),
+
+              // BOTÓN DE SIMULACIÓN PARA LA DEFENSA
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade600,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.document_scanner, color: Colors.white),
+                  label: const Text('SIMULAR LECTURA DEL BUS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  onPressed: () {
+                    // Lógica del cobro (2.00 Bs. por pasaje estándar)
+                    if (_saldo >= 2.00) {
+                      Navigator.pop(context); // Cierra el QR
+                      setState(() {
+                        _saldo -= 2.00; // Descuenta el pasaje de la UI
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('¡Pasaje pagado! 2.00 Bs. descontados de tu billetera.'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    } else {
+                      Navigator.pop(context); // Cierra el QR
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Saldo insuficiente. Por favor, recarga tu billetera.'),
+                          backgroundColor: Colors.red,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+              
+              // Botón para cerrar manual
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('CERRAR', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,81 +138,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
         centerTitle: true,
         backgroundColor: const Color(0xFF0D47A1),
         foregroundColor: Colors.white,
-        // Al quitar automaticallyImplyLeading: false, Flutter maneja automáticamente 
-        // la apertura del menú lateral con el ícono de la hamburguesa.
       ),
       
-      // IMPLEMENTACIÓN DEL MENÚ LATERAL (DRAWER)
       drawer: Drawer(
         child: Column(
           children: [
-            // Encabezado de la cuenta con la foto simulada y datos del usuario
             UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(
-                color: Color(0xFF0D47A1), // Color azul institucional
-              ),
+              decoration: const BoxDecoration(color: Color(0xFF0D47A1)),
               currentAccountPicture: const CircleAvatar(
                 backgroundColor: Colors.white,
                 child: Icon(Icons.person, size: 50, color: Color(0xFF0D47A1)),
               ),
-              accountName: const Text(
-                'Usuario Administrador',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
+              accountName: const Text('Usuario Administrador', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
               accountEmail: const Text('admin@sigtransporte.com'),
             ),
-            
-            // Opción: Ajustes de cuenta
-            ListTile(
-              leading: const Icon(Icons.manage_accounts, color: Color(0xFF0D47A1)),
-              title: const Text('Ajustes de cuenta', style: TextStyle(fontWeight: FontWeight.w600)),
-              onTap: () {
-                Navigator.pop(context); // Cierra el menú lateral
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Módulo de Ajustes de Cuenta en desarrollo')),
-                );
-              },
-            ),
-            
-            // Opción: Términos y condiciones
-            ListTile(
-              leading: const Icon(Icons.description, color: Color(0xFF0D47A1)),
-              title: const Text('Términos y condiciones', style: TextStyle(fontWeight: FontWeight.w600)),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Módulo de Términos y Condiciones en desarrollo')),
-                );
-              },
-            ),
-            
-            // Opción: Soporte técnico
-            ListTile(
-              leading: const Icon(Icons.contact_support, color: Color(0xFF0D47A1)),
-              title: const Text('Soporte técnico', style: TextStyle(fontWeight: FontWeight.w600)),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Soporte técnico: soporte@sigtransporte.com')),
-                );
-              },
-            ),
-            
+            _buildDrawerItem(Icons.manage_accounts, 'Ajustes de cuenta'),
+            _buildDrawerItem(Icons.description, 'Términos y condiciones'),
+            _buildDrawerItem(Icons.contact_support, 'Soporte técnico'),
             const Divider(),
-            const Spacer(), // Empuja el botón de salida hacia la parte inferior del panel
-            
-            // Opción: Cerrar Sesión trasladado de manera elegante al menú lateral
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.redAccent),
-              title: const Text(
-                'Cerrar Sesión', 
-                style: TextStyle(fontWeight: FontWeight.w600, color: Colors.redAccent),
-              ),
-              onTap: () {
-                // Limpia el árbol de navegación y regresa a la pantalla de login (AuthScreen)
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-            ),
+            const Spacer(),
+            _buildDrawerItem(Icons.logout, 'Cerrar Sesión', color: Colors.redAccent, onTap: () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            }),
             const SizedBox(height: 20),
           ],
         ),
@@ -108,7 +170,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           children: [
             const SizedBox(height: 10),
-            // Tarjeta de Saldo Principal
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
@@ -126,7 +187,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(height: 30),
-            // Cuadrícula de Acciones (2x2)
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -135,42 +195,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
               mainAxisSpacing: 16,
               childAspectRatio: 1.1,
               children: [
-                _buildMenuCard(
-                  'Recarga Virtual', 
-                  Icons.account_balance_wallet, 
-                  Colors.orange, 
-                  () async {
+                _buildMenuCard('Recarga Virtual', Icons.account_balance_wallet, Colors.orange, () async {
                     final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => const RechargeScreen()));
                     if (res != null) setState(() => _saldo += res);
                   }
                 ),
-                _buildMenuCard(
-                  _tarjetaVinculada ? 'Plástico Vinculado' : 'Vincular Tarjeta', 
-                  _tarjetaVinculada ? Icons.check_circle : Icons.nfc, 
-                  _tarjetaVinculada ? Colors.green : Colors.blue, 
-                  () async {
+                _buildMenuCard(_tarjetaVinculada ? 'Plástico Vinculado' : 'Vincular Tarjeta', _tarjetaVinculada ? Icons.check_circle : Icons.nfc, _tarjetaVinculada ? Colors.green : Colors.blue, () async {
                     if (_tarjetaVinculada) return;
                     final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => const LinkCardScreen()));
                     if (res == true) setState(() => _tarjetaVinculada = true);
                   }
                 ),
-                _buildMenuCard(
-                  'Monitoreo Rutas', 
-                  Icons.map, 
-                  Colors.purple, 
-                  () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MonitoringScreen()))
-                ),
-                _buildMenuCard(
-                  'Historial Viajes', 
-                  Icons.history, 
-                  Colors.blueGrey, 
-                  () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()))
-                ),
+                _buildMenuCard('Monitoreo Rutas', Icons.map, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MonitoringScreen()))),
+                _buildMenuCard('Historial Viajes', Icons.history, Colors.blueGrey, () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()))),
               ],
             ),
+            const SizedBox(height: 80), 
           ],
         ),
       ),
+      
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _generarPasajeQR,
+        backgroundColor: const Color(0xFF0D47A1), 
+        icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+        label: const Text('PAGAR PASAJE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        elevation: 5,
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat, 
+    );
+  }
+
+  Widget _buildDrawerItem(IconData icon, String title, {Color color = const Color(0xFF0D47A1), VoidCallback? onTap}) {
+    return ListTile(
+      leading: Icon(icon, color: color),
+      title: Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color == Colors.redAccent ? Colors.redAccent : Colors.black87)),
+      onTap: onTap ?? () {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Módulo $title en desarrollo')));
+      },
     );
   }
 

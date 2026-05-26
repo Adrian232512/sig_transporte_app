@@ -23,14 +23,86 @@ class _DashboardScreenState extends State<DashboardScreen> {
         centerTitle: true,
         backgroundColor: const Color(0xFF0D47A1),
         foregroundColor: Colors.white,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
-          ),
-        ],
+        // Al quitar automaticallyImplyLeading: false, Flutter maneja automáticamente 
+        // la apertura del menú lateral con el ícono de la hamburguesa.
       ),
+      
+      // IMPLEMENTACIÓN DEL MENÚ LATERAL (DRAWER)
+      drawer: Drawer(
+        child: Column(
+          children: [
+            // Encabezado de la cuenta con la foto simulada y datos del usuario
+            UserAccountsDrawerHeader(
+              decoration: const BoxDecoration(
+                color: Color(0xFF0D47A1), // Color azul institucional
+              ),
+              currentAccountPicture: const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, size: 50, color: Color(0xFF0D47A1)),
+              ),
+              accountName: const Text(
+                'Usuario Administrador',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              accountEmail: const Text('admin@sigtransporte.com'),
+            ),
+            
+            // Opción: Ajustes de cuenta
+            ListTile(
+              leading: const Icon(Icons.manage_accounts, color: Color(0xFF0D47A1)),
+              title: const Text('Ajustes de cuenta', style: TextStyle(fontWeight: FontWeight.w600)),
+              onTap: () {
+                Navigator.pop(context); // Cierra el menú lateral
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Módulo de Ajustes de Cuenta en desarrollo')),
+                );
+              },
+            ),
+            
+            // Opción: Términos y condiciones
+            ListTile(
+              leading: const Icon(Icons.description, color: Color(0xFF0D47A1)),
+              title: const Text('Términos y condiciones', style: TextStyle(fontWeight: FontWeight.w600)),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Módulo de Términos y Condiciones en desarrollo')),
+                );
+              },
+            ),
+            
+            // Opción: Soporte técnico
+            ListTile(
+              leading: const Icon(Icons.contact_support, color: Color(0xFF0D47A1)),
+              title: const Text('Soporte técnico', style: TextStyle(fontWeight: FontWeight.w600)),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Soporte técnico: soporte@sigtransporte.com')),
+                );
+              },
+            ),
+            
+            const Divider(),
+            const Spacer(), // Empuja el botón de salida hacia la parte inferior del panel
+            
+            // Opción: Cerrar Sesión trasladado de manera elegante al menú lateral
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.redAccent),
+              title: const Text(
+                'Cerrar Sesión', 
+                style: TextStyle(fontWeight: FontWeight.w600, color: Colors.redAccent),
+              ),
+              onTap: () {
+                // Limpia el árbol de navegación y regresa a la pantalla de login (AuthScreen)
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+      
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -73,7 +145,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   }
                 ),
                 _buildMenuCard(
-                  _tarjetaVinculada ? 'Tarjeta Vinculada' : 'Vincular Tarjeta', 
+                  _tarjetaVinculada ? 'Plástico Vinculado' : 'Vincular Tarjeta', 
                   _tarjetaVinculada ? Icons.check_circle : Icons.nfc, 
                   _tarjetaVinculada ? Colors.green : Colors.blue, 
                   () async {

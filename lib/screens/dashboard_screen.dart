@@ -6,7 +6,15 @@ import 'history_screen.dart';
 import 'monitoring_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  // Variables que recibe desde el Login
+  final String nombreUsuario;
+  final bool esEstudiante;
+
+  const DashboardScreen({
+    super.key, 
+    this.nombreUsuario = 'Usuario Administrador', 
+    this.esEstudiante = false
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -16,9 +24,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double _saldo = 0.00;
   bool _tarjetaVinculada = false;
 
-  // FUNCIÓN PARA GENERAR Y MOSTRAR EL QR DEL PASAJE VIRTUAL (CON SIMULADOR)
   void _generarPasajeQR() {
-    String datosDelBoleto = "SIGTRANSPORTE_BOLIVIA|USER_ID:123|TICKET_TYPE:NORMAL|TIMESTAMP:${DateTime.now().toIso8601String()}";
+    // 1. APLICAMOS LA REGLA DE NEGOCIO PARA EL PRECIO Y EL COLOR
+    double costoPasaje = widget.esEstudiante ? 2.50 : 3.00;
+    String tipoBoleto = widget.esEstudiante ? 'ESTUDIANTE (2.50 Bs)' : 'NORMAL (3.00 Bs)';
+    Color colorTema = widget.esEstudiante ? Colors.green.shade700 : const Color(0xFF0D47A1);
+
+    String datosDelBoleto = "SIGTRANSPORTE|USER:${widget.nombreUsuario}|TYPE:$tipoBoleto|TIME:${DateTime.now().toIso8601String()}";
 
     showModalBottomSheet(
       context: context,
@@ -37,72 +49,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
               const SizedBox(height: 20),
               
-              const Text(
-                'Tu Pasaje Virtual',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1)),
+              Text(
+                'Pasaje $tipoBoleto',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colorTema),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Acerca este código QR al validador del bus para pagar tu pasaje.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.black54),
-              ),
+              const Text('Acerca este código QR al validador del bus.', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54)),
               const SizedBox(height: 30),
               
-              // WIDGET DEL QR
+              // WIDGET DEL QR CON COLOR DINÁMICO
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  border: Border.all(color: Colors.grey.shade200, width: 2),
+                  border: Border.all(color: colorTema.withOpacity(0.3), width: 2),
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                  boxShadow: [BoxShadow(color: colorTema.withOpacity(0.1), blurRadius: 10)],
                 ),
                 child: QrImageView(
                   data: datosDelBoleto,
                   version: QrVersions.auto,
                   size: 220.0,
                   gapless: false,
-                  eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF0D47A1)),
+                  eyeStyle: QrEyeStyle(eyeShape: QrEyeShape.square, color: colorTema),
                   dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Colors.black87),
                 ),
               ),
               
               const SizedBox(height: 30),
 
-              // BOTÓN DE SIMULACIÓN PARA LA DEFENSA
+              // BOTÓN SIMULADOR CON DESCUENTO DINÁMICO
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade600,
+                    backgroundColor: colorTema,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   icon: const Icon(Icons.document_scanner, color: Colors.white),
-                  label: const Text('SIMULAR LECTURA DEL BUS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  label: Text('SIMULAR PAGO DE $costoPasaje Bs.', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   onPressed: () {
-                    // Lógica del cobro (2.00 Bs. por pasaje estándar)
-                    if (_saldo >= 2.00) {
-                      Navigator.pop(context); // Cierra el QR
+                    if (_saldo >= costoPasaje) {
+                      Navigator.pop(context);
                       setState(() {
-                        _saldo -= 2.00; // Descuenta el pasaje de la UI
+                        _saldo -= costoPasaje;
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('¡Pasaje pagado! 2.00 Bs. descontados de tu billetera.'),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 3),
-                        ),
+                        SnackBar(content: Text('¡Pasaje pagado! $costoPasaje Bs. descontados.'), backgroundColor: Colors.green),
                       );
                     } else {
-                      Navigator.pop(context); // Cierra el QR
+                      Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Saldo insuficiente. Por favor, recarga tu billetera.'),
-                          backgroundColor: Colors.red,
-                          duration: Duration(seconds: 3),
-                        ),
+                        const SnackBar(content: Text('Saldo insuficiente. Recarga tu billetera.'), backgroundColor: Colors.red),
                       );
                     }
                   },
@@ -110,7 +109,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 10),
               
-              // Botón para cerrar manual
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
@@ -139,7 +137,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: const Color(0xFF0D47A1),
         foregroundColor: Colors.white,
       ),
-      
       drawer: Drawer(
         child: Column(
           children: [
@@ -149,12 +146,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 backgroundColor: Colors.white,
                 child: Icon(Icons.person, size: 50, color: Color(0xFF0D47A1)),
               ),
-              accountName: const Text('Usuario Administrador', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-              accountEmail: const Text('admin@sigtransporte.com'),
+              // MOSTRAMOS EL NOMBRE REAL DE LA BASE DE DATOS
+              accountName: Text(widget.nombreUsuario, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              accountEmail: Text(widget.esEstudiante ? 'Cuenta Universitaria' : 'Cuenta Estándar'),
             ),
             _buildDrawerItem(Icons.manage_accounts, 'Ajustes de cuenta'),
-            _buildDrawerItem(Icons.description, 'Términos y condiciones'),
-            _buildDrawerItem(Icons.contact_support, 'Soporte técnico'),
             const Divider(),
             const Spacer(),
             _buildDrawerItem(Icons.logout, 'Cerrar Sesión', color: Colors.redAccent, onTap: () {
@@ -164,7 +160,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
-      
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -174,9 +169,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [Colors.blue.shade900, Colors.blue.shade600]),
+                gradient: LinearGradient(
+                  // Si es estudiante el fondo de la billetera es verde oscuro, si no, azul
+                  colors: widget.esEstudiante 
+                    ? [Colors.teal.shade900, Colors.green.shade600] 
+                    : [Colors.blue.shade900, Colors.blue.shade600]
+                ),
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 10)],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10)],
               ),
               child: Column(
                 children: [
@@ -214,13 +214,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
-      
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _generarPasajeQR,
-        backgroundColor: const Color(0xFF0D47A1), 
+        // Color dinámico del botón flotante
+        backgroundColor: widget.esEstudiante ? Colors.green.shade700 : const Color(0xFF0D47A1), 
         icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
         label: const Text('PAGAR PASAJE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        elevation: 5,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat, 
     );

@@ -30,7 +30,7 @@ class _AuthScreenState extends State<AuthScreen> {
       // 2. CONEXIÓN REAL A MYSQL
       setState(() => _isLoading = true);
 
-      // Usamos tu IP de Wi-Fi confirmada
+      // Usamos tu IP nueva confirmada
       const String ipComputadora = '192.168.1.12'; 
       final Uri url = Uri.parse('http://$ipComputadora:8000/api/login');
 
@@ -39,7 +39,7 @@ class _AuthScreenState extends State<AuthScreen> {
           url,
           headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
           body: jsonEncode({
-            'email': _userController.text, // El input ahora se usa como correo
+            'email': _userController.text,
             'password': _passwordController.text,
           }),
         );
@@ -47,14 +47,24 @@ class _AuthScreenState extends State<AuthScreen> {
         setState(() => _isLoading = false);
 
         if (response.statusCode == 200) {
-          // Si el login es correcto (200 OK)
           if (!mounted) return;
+          
+          // Extraemos los datos del usuario que Laravel nos devolvió
+          final data = jsonDecode(response.body);
+          final String nombre = data['user']['name'];
+          // Dependiendo del motor SQL, un boolean puede llegar como 1 o como true
+          final bool esEstudiante = data['user']['is_student'] == 1 || data['user']['is_student'] == true;
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Sesión iniciada correctamente'), backgroundColor: Colors.green),
           );
+          
+          // Navegamos al Dashboard enviándole el nombre y su estado de estudiante
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const DashboardScreen()),
+            MaterialPageRoute(
+              builder: (context) => DashboardScreen(nombreUsuario: nombre, esEstudiante: esEstudiante),
+            ),
           );
         } else {
           // Si Laravel rechaza las credenciales (401)

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'dashboard_screen.dart';
+import 'register_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -9,27 +12,66 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  // Clave global para controlar y validar el estado del formulario
   final _formKey = GlobalKey<FormState>();
-  
-  // Controladores para capturar lo que el usuario escribe
   final _userController = TextEditingController();
   final _passwordController = TextEditingController();
+  
+  bool _isLoading = false; // Control de animación de carga
 
-  void _procesarLogin() {
-    // Valida que los campos cumplan con las condiciones antes de avanzar
+  void _procesarLogin() async {
     if (_formKey.currentState!.validate()) {
-      // Credenciales de prueba académicas
+      
+      // 1. PUERTA TRASERA (Emergencia para la demostración)
       if (_userController.text == 'admin' && _passwordController.text == '1234') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
+        return;
+      }
+
+      // 2. CONEXIÓN REAL A MYSQL
+      setState(() => _isLoading = true);
+
+      // Usamos tu IP de Wi-Fi confirmada
+      const String ipComputadora = '192.168.1.12'; 
+      final Uri url = Uri.parse('http://$ipComputadora:8000/api/login');
+
+      try {
+        final response = await http.post(
+          url,
+          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          body: jsonEncode({
+            'email': _userController.text, // El input ahora se usa como correo
+            'password': _passwordController.text,
+          }),
         );
-      } else {
-        // Muestra una notificación si los datos son incorrectos
+
+        setState(() => _isLoading = false);
+
+        if (response.statusCode == 200) {
+          // Si el login es correcto (200 OK)
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sesión iniciada correctamente'), backgroundColor: Colors.green),
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          );
+        } else {
+          // Si Laravel rechaza las credenciales (401)
+          final errorData = jsonDecode(response.body);
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorData['message'] ?? 'Credenciales incorrectas'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Usuario o contraseña incorrectos'),
+            content: Text('Error de red. Verifica la conexión al servidor.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -50,70 +92,56 @@ class _AuthScreenState extends State<AuthScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const SizedBox(height: 10),
-                const Text(
-                  'IDENTIFÍCATE',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1)),
-                ),
+                const Text('IDENTIFÍCATE', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
                 const SizedBox(height: 30),
-                // Reemplazo del círculo por un logo de autenticación moderno
                 Container(
-                  width: 130,
-                  height: 130,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0D47A1).withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.lock_person_rounded, size: 70, color: Color(0xFF0D47A1)),
-                  ),
+                  width: 130, height: 130,
+                  decoration: BoxDecoration(color: const Color(0xFF0D47A1).withOpacity(0.1), shape: BoxShape.circle),
+                  child: const Center(child: Icon(Icons.lock_person_rounded, size: 70, color: Color(0xFF0D47A1))),
                 ),
                 const SizedBox(height: 40),
-                // Campo de entrada para el Usuario
+                
                 TextFormField(
                   controller: _userController,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
-                    labelText: 'Usuario',
-                    prefixIcon: const Icon(Icons.person_outline),
+                    labelText: 'Correo Electrónico',
+                    prefixIcon: const Icon(Icons.email_outlined),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, ingresa tu usuario';
-                    }
-                    return null;
-                  },
+                  validator: (value) => (value == null || value.isEmpty) ? 'Por favor, ingresa tu correo' : null,
                 ),
                 const SizedBox(height: 20),
-                // Campo de entrada para la Contraseña
+                
                 TextFormField(
                   controller: _passwordController,
-                  obscureText: true, // Oculta el texto escribiendo puntitos
+                  obscureText: true,
                   decoration: InputDecoration(
                     labelText: 'Contraseña',
                     prefixIcon: const Icon(Icons.lock_open_outlined),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, ingresa tu contraseña';
-                    }
-                    return null;
-                  },
+                  validator: (value) => (value == null || value.isEmpty) ? 'Por favor, ingresa tu contraseña' : null,
                 ),
                 const SizedBox(height: 40),
-                // Botón Iniciar Sesión con lógica vinculada
+                
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _procesarLogin,
-                    child: const Text('INICIAR SESIÓN', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    onPressed: _isLoading ? null : _procesarLogin,
+                    child: _isLoading 
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('INICIAR SESIÓN', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                 ),
                 const SizedBox(height: 15),
+                
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
+                    },
                     child: const Text('REGÍSTRATE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
